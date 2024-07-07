@@ -2,12 +2,13 @@
 
 ---
 
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/master%20maven%20CI/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/master.yml)
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/develop%20maven%20CI/badge.svg?branch=develop)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/develop.yml)
-[![](https://img.shields.io/badge/version-4.4.1-blue)](https://github.com/qtc-de/remote-method-guesser/releases)
+[![maven CI](https://github.com/qtc-de/remote-method-guesser/actions/workflows/maven-ci.yml/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/maven-ci.yml)
+[![maven CI](https://github.com/qtc-de/remote-method-guesser/actions/workflows/maven-ci.yml/badge.svg?branch=develop)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/maven-ci.yml)
+[![](https://img.shields.io/badge/version-5.1.0-blue)](https://github.com/qtc-de/remote-method-guesser/releases)
 [![](https://img.shields.io/badge/build%20system-maven-blue)](https://maven.apache.org/)
 ![](https://img.shields.io/badge/java-8%2b-blue)
 [![](https://img.shields.io/badge/license-GPL%20v3.0-blue)](https://github.com/qtc-de/remote-method-guesser/blob/master/LICENSE)
+[![](https://img.shields.io/badge/javadoc-fa6b05)](https://qtc-de.github.io/remote-method-guesser/)
 
 *remote-method-guesser* (*rmg*) is a *Java RMI* vulnerability scanner and can be used to identify and verify common security
 vulnerabilities on *Java RMI* endpoints.
@@ -22,19 +23,21 @@ within the *Arsenal* sessions. The recording of the session and the correspondin
 * Slides: [https://www.slideshare.net/TobiasNeitzel/remotemethodguesser-bhusa2021-arsenal](https://www.slideshare.net/TobiasNeitzel/remotemethodguesser-bhusa2021-arsenal)
 * Recording: [https://youtu.be/t_aw1mDNhzI](https://youtu.be/t_aw1mDNhzI)
 
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/example%20server%20-%20master/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/master-example-server.yml)
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/example%20server%20-%20develop/badge.svg?branch=develop)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/develop-example-server.yml)
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/ssrf%20server%20-%20master/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/master-ssrf-server.yml)
-[![](https://github.com/qtc-de/remote-method-guesser/workflows/ssrf%20server%20-%20develop/badge.svg?branch=develop)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/develop-ssrf-server.yml)
+[![example server](https://github.com/qtc-de/remote-method-guesser/actions/workflows/example-server.yml/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/example-server.yml)
+[![ssrf server](https://github.com/qtc-de/remote-method-guesser/actions/workflows/ssrf-server.yml/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/ssrf-server.yml)
+[![spring server](https://github.com/qtc-de/remote-method-guesser/actions/workflows/spring-server.yml/badge.svg?branch=master)](https://github.com/qtc-de/remote-method-guesser/actions/workflows/spring-server.yml)
 
-The *remote-method-guesser* repository contains two example servers that can be used to practice *Java RMI* enumeration and attacks.
+The *remote-method-guesser* repository contains three example servers that can be used to practice *Java RMI* enumeration and attacks.
 The [rmg-example-server](/docker/example-server) exposes regular *RMI* services that can be enumerated and exploited using *remote-method-guesser*.
 The [rmg-ssrf-server](/docker/ssrf-server) exposes an *HTTP* service that is vulnerable to *SSRF* attacks and runs *RMI* services that are only
 listening on localhost. This can be used to practice with *remote-method-guesser's* ``--ssrf`` and ``--ssrf-response`` options.
-Both servers are available as containers within the *GitHub Container Registry*:
+The [spring-remoting-server](/docker/spring-remoting) exposes RMI interfaces created via *Spring Remoting*. These are a little bit different from
+regular Java RMI and can be used to test the associated Spring Remoting integration of remote-method-guesser.
+All servers are available as containers within the *GitHub Container Registry*:
 
 * [SSRF Server GitHub Package](https://github.com/qtc-de/remote-method-guesser/pkgs/container/remote-method-guesser%2Frmg-ssrf-server)
 * [Example Server GitHub Package](https://github.com/qtc-de/remote-method-guesser/pkgs/container/remote-method-guesser%2Frmg-example-server)
+* [Spring Remoting Server GitHub Package](https://github.com/qtc-de/remote-method-guesser/pkgs/container/remote-method-guesser%2Fspring-remoting-server)
 
 
 ### Table of Contents
@@ -190,20 +193,20 @@ Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 ```
 
 Notice that calling remote methods does not create any output by default. To process outputs generated by the ``call`` action, you need
-to use *remote-method-guesser's* plugin system and register a ``ResponseHandler``. The [plugin folder](./plugins) of this repository contains
-a *GenericPrint* plugin that is suitable for most situations. To learn more about *remote-method-guesser's* plugin system, please refer to the
-[detailed documentation folder](./docs/rmg/plugin-system.md).
+to use *remote-method-guesser's* [plugin system](./docs/rmg/plugin-system.md) and register a ``ResponseHandler`` or use the default
+`GenericPrint` plugin. `GenericPrint` is inlcuded into *remote-method-guesser* by default and can be activated by using the `--show-response`
+option.
 
 ```console
-[qtc@devbox remote-method-guesser]$ bash plugins/build.sh target/rmg-4.0.0-jar-with-dependencies.jar plugins/GenericPrint.java GenericPrint.jar
-[qtc@devbox remote-method-guesser]$ rmg call 172.17.0.2 9010 '"id"' --signature 'String execute(String cmd)' --bound-name plain-server --plugin GenericPrint.jar 
+[qtc@devbox remote-method-guesser]$ rmg call 172.17.0.2 9010 '"id"' --signature 'String execute(String cmd)' --bound-name plain-server --show-response
 [+] uid=0(root) gid=0(root) groups=0(root)
 ```
 
-During the ``call`` action, the argument string is evaluated as a *Java expression* of the following form: ``new Object[]{ <ARG> }``. Therefore,
-you need to make sure that your argument string fits into that pattern. E.g. using ``"id"`` as an argument results in an error, as the argument is
-passed as ``id`` to *remote-method-guesser* and the resulting expression ``new Object[]{ id }`` is not a valid *Java expression*. Instead, you need
-to use ``'"id"'`` as this leads to ``new Object[]{ "id" }``, which is valid.
+During the ``call`` action, the provided arguments are evaluated as *Java expression* by inserting them into the following template:
+``new Object[]{ arg1, arg2, arg3, ... }``. Therefore, you need to make sure that your provided arguments fit into that pattern. E.g.
+using ``"id"`` as an argument results in an error, as the argument is passed as ``id`` to *remote-method-guesser* and the resulting
+expression ``new Object[]{ id }`` is not a valid *Java expression*. Instead, you need to use ``'"id"'`` as this leads to ``new Object[]{ "id" }``,
+which is valid.
 
 Moreover, primitive types need to be specified in their corresponding object representation (e.g. ``new Integer(5)`` instead of ``5``). Otherwise they
 cannot be used within the ``Object[]`` array, that is created by the *Java expression*. During the *RMI call*, the corresponding arguments are used

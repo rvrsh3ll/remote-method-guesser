@@ -6,12 +6,17 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.rmi.server.RMIClientSocketFactory;
 import java.rmi.server.RMISocketFactory;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
 
+import eu.tneitzel.argparse4j.global.IAction;
+import eu.tneitzel.argparse4j.global.IOption;
+import eu.tneitzel.argparse4j.inf.Subparsers;
 import eu.tneitzel.rmg.exceptions.MalformedPluginException;
 import eu.tneitzel.rmg.internal.ExceptionHandler;
-import eu.tneitzel.rmg.internal.RMGOption;
 import eu.tneitzel.rmg.io.Logger;
 import eu.tneitzel.rmg.operations.Operation;
 import eu.tneitzel.rmg.utils.RMGUtils;
@@ -27,10 +32,14 @@ import eu.tneitzel.rmg.utils.RMGUtils;
  *
  * @author Tobias Neitzel (@qtc_de)
  */
-public class PluginSystem {
-
+public class PluginSystem
+{
     private static String manifestAttribute = "RmgPluginClass";
 
+    /** The class loader that was used to load the plugin */
+    public static URLClassLoader pluginLoader = null;
+
+    private static IActionProvider actionProvider = null;
     private static IPayloadProvider payloadProvider = null;
     private static IResponseHandler responseHandler = null;
     private static IArgumentProvider argumentProvider = null;
@@ -42,15 +51,17 @@ public class PluginSystem {
      * pluginPath was specified, the plugin is attempted to be loaded and may overwrite previous settings.
      *
      * @param pluginPath user specified plugin path or null
+     * @param genericPrint whether to use the GenericPrint builtin plugin
      */
-    public static void init(String pluginPath)
+    public static void init(String pluginPath, boolean genericPrint)
     {
         DefaultProvider provider = new DefaultProvider();
+
         payloadProvider = provider;
         argumentProvider = provider;
         socketFactoryProvider = provider;
 
-        if (RMGOption.GENERIC_PRINT.getBool())
+        if (genericPrint)
         {
             responseHandler = new GenericPrint();
         }
@@ -109,8 +120,8 @@ public class PluginSystem {
 
         try
         {
-            URLClassLoader ucl = new URLClassLoader(new URL[] {pluginFile.toURI().toURL()});
-            Class<?> pluginClass = Class.forName(pluginClassName, true, ucl);
+            pluginLoader = new URLClassLoader(new URL[] {pluginFile.toURI().toURL()});
+            Class<?> pluginClass = Class.forName(pluginClassName, true, pluginLoader);
             pluginInstance = pluginClass.newInstance();
         }
 
@@ -120,6 +131,12 @@ public class PluginSystem {
             Logger.printlnPlainBlue(pluginPath);
             ExceptionHandler.showStackTrace(e);
             RMGUtils.exit();
+        }
+
+        if (pluginInstance instanceof IActionProvider)
+        {
+            actionProvider = (IActionProvider)pluginInstance;
+            inUse = true;
         }
 
         if (pluginInstance instanceof IPayloadProvider)
@@ -182,12 +199,12 @@ public class PluginSystem {
      * Is called during rmg's 'call' action to obtain the Object argument array. Just forwards the call to the corresponding
      * plugin.
      *
-     * @param argumentString as specified on the command line
+     * @param args as specified on the command line
      * @return Object array to use for the call
      */
-    public static Object[] getArgumentArray(String argumentString)
+    public static Object[] getArgumentArray(String[] args)
     {
-        return argumentProvider.getArgumentArray(argumentString);
+        return argumentProvider.getArgumentArray(args);
     }
 
     /**
@@ -195,6 +212,9 @@ public class PluginSystem {
      * is used for all direct RMI calls. So e.g. if you call the registry or another RMI endpoint directly. If you
      * first lookup a bound name and use the obtained reference to make calls on the object, another factory is used
      * (check the getDefaultClientSocketFactory function for more details).
+     *
+     * @param host remote host
+     * @param port remote port
      *
      * @return RMIClientSocketFactory that is used for direct RMI calls
      */
@@ -207,6 +227,9 @@ public class PluginSystem {
      * Returns the RMISocketFactory that is used for all RMI connections that use the default RMISocketFactory. The
      * factory returned by this function is used when you perform RMI actions on a remote object reference that was
      * obtained from the RMI registry and the RMI server did not assign a custom socket factory to the object.
+     *
+     * @param host remote host
+     * @param port remote port
      *
      * @return RMISocketFactory that is used for "after lookup" RMI calls
      */
@@ -221,6 +244,9 @@ public class PluginSystem {
      * SSLSocketFactory is by setting a Java property. Therefore, this function should return the name of a class that
      * you want to use as your default SSLSocketFactory. Notice that the factory needs to be available on the class path
      * and it is not sufficient to define it within the plugin.
+     *
+     * @param host remote host
+     * @param port remote port
      *
      * @return String that indicates the desired SSLSocketFactories class name
      */
@@ -277,5 +303,65 @@ public class PluginSystem {
     public static void setResponeHandler(IResponseHandler handler)
     {
         responseHandler = handler;
+    }
+
+    /**
+     * Return actions added by a user defined plugin. If no plugin was specified,
+     * an empty array of actions is returned.
+     *
+     * @return array of additional actions
+     */
+    public static IAction[] getPluginActions()
+    {
+        if (actionProvider != null)
+        {
+            return actionProvider.getActions();
+        }
+
+        return new IAction[] {};
+    }
+
+    /**
+     * Return options added by a user defined plugin. If no plugin was specified,
+     * an empty list of options is returned.
+     *
+     * @return array of additional options
+     */
+    public static List<IOption> getPluginOptions()
+    {
+        List<IOption> options = new ArrayList<IOption>();
+
+        if (actionProvider != null)
+        {
+            for (IAction action : actionProvider.getActions())
+            {
+                options.addAll(Arrays.asList(action.getOptions()));
+            }
+        }
+
+        return options;
+    }
+
+    /**
+     * Add actions added by a user defined plugin to an argument parser.
+     *
+     * @param parser the argument parser to add the actions to
+     */
+    public static void addPluginActions(Subparsers parser)
+    {
+        for (IAction action : getPluginActions())
+        {
+            action.addSuparser(parser);
+        }
+    }
+
+    /**
+     * Dispatch an action that was provided by a plugin.
+     *
+     * @param pluginAction the plugin action to dispatch
+     */
+    public static void dispatchPluginAction(IAction pluginAction)
+    {
+        actionProvider.dispatch(pluginAction);
     }
 }

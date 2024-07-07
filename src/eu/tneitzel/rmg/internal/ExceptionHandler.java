@@ -2,6 +2,10 @@ package eu.tneitzel.rmg.internal;
 
 import java.rmi.server.ObjID;
 
+import eu.tneitzel.argparse4j.global.IOption;
+import eu.tneitzel.argparse4j.global.exceptions.RequirementAllOfException;
+import eu.tneitzel.argparse4j.global.exceptions.RequirementException;
+import eu.tneitzel.argparse4j.global.exceptions.RequirementOneOfException;
 import eu.tneitzel.rmg.io.Logger;
 import eu.tneitzel.rmg.utils.RMGUtils;
 
@@ -17,8 +21,8 @@ import eu.tneitzel.rmg.utils.RMGUtils;
  *
  * @author Tobias Neitzel (@qtc_de)
  */
-public class ExceptionHandler {
-
+public class ExceptionHandler
+{
     private static void sslOption()
     {
         if(RMGOption.CONN_SSL.getBool())
@@ -27,6 +31,44 @@ public class ExceptionHandler {
             Logger.eprintlnMixedYellow("You can retry the operation using the", "--ssl", "option.");
     }
 
+    /**
+     * @param e description in progress
+     */
+    public static void requirementException(RequirementException e)
+    {
+        StringBuilder optionString = new StringBuilder();
+        IOption[] requiredOptions = e.getRequiredOptions();
+
+        for (IOption option : requiredOptions)
+        {
+            optionString.append(option.getName());
+            optionString.append(", ");
+        }
+
+        optionString.setLength(optionString.length() - 2);
+
+        if (e instanceof RequirementAllOfException)
+        {
+            Logger.eprintlnMixedYellow("Error: The specified action requires the", optionString.toString(), "options.");
+        }
+
+        else if (e instanceof RequirementOneOfException)
+        {
+            Logger.eprintlnMixedYellow("Error: The specified action requires one of the", optionString.toString(), "options.");
+        }
+
+        else
+        {
+            Logger.eprintlnMixedYellow("Error: The specified action requires the", requiredOptions[0].getName(), "option.");
+        }
+
+        RMGUtils.exit();
+    }
+
+    /**
+     * @param functionName description in progress
+     * @param message description in progress
+     */
     public static void internalError(String functionName, String message)
     {
         Logger.eprintlnMixedYellow("Internal error within the", functionName, "function.");
@@ -34,6 +76,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param functionName description in progress
+     * @param exit description in progress
+     */
     public static void internalException(Exception e, String functionName, boolean exit)
     {
         Logger.eprintMixedYellow("Internal error. Caught unexpected", e.getClass().getName(), "within the ");
@@ -44,6 +91,12 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     * @param exit description in progress
+     */
     public static void unexpectedException(Exception e, String during1, String during2, boolean exit)
     {
         Logger.eprintMixedYellow("Caught unexpected", e.getClass().getName(), "during ");
@@ -55,6 +108,10 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param exit description in progress
+     */
     public static void unknownCodebaseException(Throwable e, boolean exit)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", e.getClass().getName(), "during codebase attack.");
@@ -65,6 +122,10 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param boundName description in progress
+     */
     public static void alreadyBoundException(Exception e, String boundName)
     {
         Logger.eprintlnMixedYellow("Bind operation", "was accepted", "by the server.");
@@ -73,6 +134,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     * @param bypass description in progress
+     */
     public static void nonLocalhost(Exception e, String callName, boolean bypass)
     {
         Logger.eprintlnMixedYellow("Registry", "rejected " + callName + " call", "because it was not sent from localhost.");
@@ -85,6 +151,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void jep290(Exception e)
     {
         Logger.eprintlnMixedYellow("RMI registry", "rejected", "deserialization of the supplied gadget.");
@@ -92,6 +161,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void deserializeClassNotFound(Exception e)
     {
         Logger.eprintlnMixedYellow("Server", "accepted", "deserialization of the supplied gadget, but");
@@ -101,6 +173,12 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     * @param className description in progress
+     */
     public static void deserializeClassNotFoundRandom(Exception e, String during1, String during2, String className)
     {
         Logger.printlnMixedYellow("Caught", "ClassNotFoundException", "during " + during1 + " " + during2 + ".");
@@ -109,6 +187,10 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param wasString description in progress
+     */
     public static void deserializeClassCast(Exception e, boolean wasString)
     {
         Logger.printlnMixedYellow("Caught", "ClassCastException", "during deserialization attack.");
@@ -120,6 +202,10 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param className description in progress
+     */
     public static void codebaseClassNotFound(Exception e, String className)
     {
         Logger.eprintlnMixedYellow("Caught", "ClassNotFoundException", "during codebase attack.");
@@ -130,6 +216,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void codebaseSecurityManager(Exception e)
     {
         Logger.eprintlnMixedYellow("The class loader of the specified target is", "disabled.");
@@ -137,6 +226,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param className description in progress
+     * @param payloadName description in progress
+     */
     public static void codebaseClassNotFoundRandom(Exception e, String className, String payloadName)
     {
         Logger.printlnMixedBlue("Remote class loader attempted to load canary class", className);
@@ -149,6 +243,10 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param wasString description in progress
+     */
     public static void codebaseClassCast(Exception e, boolean wasString)
     {
         Logger.printlnMixedYellow("Caught", "ClassCastException", "during codebase attack.");
@@ -160,6 +258,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void codebaseClassFormat(Exception e)
     {
         Logger.eprintlnMixedYellow("Caught", "ClassFormatError", "during codebase attack.");
@@ -168,6 +269,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void connectionRefused(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "ConnectException", "during " + during1 + " " + during2 + ".");
@@ -177,6 +283,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void noRouteToHost(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "NoRouteToHostException", "during " + during1 + " " + during2 + ".");
@@ -185,6 +296,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void noJRMPServer(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "ConnectIOException", "during " + during1 + " " + during2 + ".");
@@ -197,6 +313,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void sslError(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "SSLException", "during " + during1 + " " + during2 + ".");
@@ -206,11 +327,20 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param endpoint description in progress
+     */
     public static void invalidClass(Exception e, String endpoint)
     {
         invalidClass(e, endpoint, true);
     }
 
+    /**
+     * @param e description in progress
+     * @param endpoint description in progress
+     * @param trace description in progress
+     */
     public static void invalidClass(Exception e, String endpoint, boolean trace)
     {
         Logger.eprintlnMixedYellow(endpoint, "rejected", "deserialization of one of the transmitted classes.");
@@ -220,6 +350,11 @@ public class ExceptionHandler {
             showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param operation description in progress
+     * @param className description in progress
+     */
     public static void invalidClassBind(Exception e, String operation, String className)
     {
         Logger.eprintln(operation + " operation failed!");
@@ -232,6 +367,10 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     */
     public static void invalidClassEnum(Exception e, String callName)
     {
         Logger.printlnMixedYellow("- Caught", "InvalidClassException", "during " + callName + " call.");
@@ -241,6 +380,10 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     */
     public static void unsupportedOperationException(Exception e, String callName)
     {
         Logger.eprintlnMixedYellow("Caught", "UnsupportedOperationException", "during " + callName + " call.");
@@ -251,6 +394,10 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     */
     public static void unsupportedOperationExceptionEnum(Exception e, String callName)
     {
         Logger.eprintlnMixedYellow("- Caught", "UnsupportedOperationException", "during " + callName + " call.");
@@ -259,6 +406,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void accessControl(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "AccessControlException", "during " + during1 + " " + during2 + ".");
@@ -266,6 +418,10 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     */
     public static void singleEntryRegistry(Exception e, String during1)
     {
         Logger.eprintlnMixedYellow("- Caught", "AccessException", "during " + during1 + "call.");
@@ -274,6 +430,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param object description in progress
+     * @param exit description in progress
+     */
     public static void noSuchObjectException(Exception e, String object, boolean exit)
     {
         Logger.eprintlnMixedYellow("Caught", "NoSuchObjectException", "during RMI call.");
@@ -284,6 +445,11 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param objID description in progress
+     * @param exit description in progress
+     */
     public static void noSuchObjectException(Exception e, ObjID objID, boolean exit)
     {
         Logger.eprintlnMixedYellow("Caught", "NoSuchObjectException", "during RMI call.");
@@ -300,6 +466,9 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     *
+     */
     public static void noSuchObjectExceptionRegistryEnum()
     {
         Logger.printlnBlue("RMI Registry Enumeration");
@@ -310,6 +479,11 @@ public class ExceptionHandler {
         Logger.decreaseIndent();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void eofException(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught unexpected", "EOFException", "during " + during1 + " " + during2 + ".");
@@ -321,6 +495,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param gadget description in progress
+     */
     public static void invalidListenerFormat(boolean gadget)
     {
         if(gadget)
@@ -330,6 +507,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param format description in progress
+     */
     public static void invalidHostFormat(String format)
     {
         Logger.eprintlnMixedYellow("The specified host format", format, "is invalid.");
@@ -337,6 +517,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param signature description in progress
+     */
     public static void invalidSignature(String signature)
     {
         Logger.eprintlnMixedYellow("Encountered invalid function signature:", signature);
@@ -344,6 +527,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void unknownDeserializationException(Exception e)
     {
         Throwable cause = getCause(e);
@@ -354,6 +540,11 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void unsupportedClassVersion(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught", "UnsupportedClassVersionError", "during " + during1 + " " + during2 + ".");
@@ -361,6 +552,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void illegalArgument(Exception e)
     {
         Logger.printlnMixedYellow("Caught", "IllegalArgumentException", "during deserialization attack.");
@@ -368,6 +562,9 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void illegalArgumentCodebase(Exception e)
     {
         Logger.printlnMixedYellow("Caught", "IllegalArgumentException", "during codebase attack.");
@@ -375,6 +572,12 @@ public class ExceptionHandler {
         showStackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     * @param exit description in progress
+     */
     public static void cannotCompile(Exception e, String during1, String during2, boolean exit)
     {
         Logger.eprintlnMixedYellow("Caught", "CannotCompileException", "during " + during1 + " " + during2 + ".");
@@ -384,6 +587,11 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param host description in progress
+     * @param exit description in progress
+     */
     public static void unknownHost(Exception e, String host, boolean exit)
     {
         Logger.eprintlnMixedYellow("Caught", "UnknownHostException", "during connection setup.");
@@ -394,6 +602,11 @@ public class ExceptionHandler {
             RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void networkUnreachable(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught", "SocketException", "during " + during1 + " " + during2 + ".");
@@ -402,6 +615,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void bindException(Exception e)
     {
         Throwable bindException = ExceptionHandler.getThrowable("BindException", e);
@@ -414,6 +630,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param location description in progress
+     */
     public static void ysoNotPresent(String location)
     {
         Logger.eprintlnMixedBlue("Unable to find ysoserial library in path", location);
@@ -421,6 +640,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     *
+     */
     public static void missingSignature()
     {
         Logger.eprintlnMixedYellow("The", "--signature", "option is required for the requested operation.");
@@ -428,6 +650,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param action description in progress
+     */
     public static void missingTarget(String action)
     {
         Logger.eprintMixedYellow("Either", "--bound-name", "or ");
@@ -436,6 +661,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param objID description in progress
+     */
     public static void invalidObjectId(String objID)
     {
         Logger.eprintlnMixedYellow("The specified ObjID", objID, "is invalid.");
@@ -444,6 +672,10 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param expected description in progress
+     * @param is description in progress
+     */
     public static void wrongArgumentCount(int expected, int is)
     {
         Logger.eprintlnMixedYellow("The specified method signature expects", String.valueOf(expected), "arguments,");
@@ -451,6 +683,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param action description in progress
+     * @param signature description in progress
+     */
     public static void unrecognizedMethodHash(Exception e, String action, String signature)
     {
         Logger.eprintlnMixedYellow("Caught", "UnmarshalException (unrecognized method hash)", "during " + action + " action.");
@@ -459,6 +696,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     *
+     */
     public static void localhostBypassNoException()
     {
         Logger.printlnMixedYellow("- Server", "did not", "raise any exception during unbind operation.");
@@ -466,18 +706,36 @@ public class ExceptionHandler {
         Logger.statusNonDefault();
     }
 
+    /**
+     * @param e description in progress
+     * @param name description in progress
+     */
     public static void lookupClassNotFoundException(Exception e, String name)
     {
         name = name.replace(" (no security manager: RMI class loader disabled)", "");
 
         Logger.eprintlnMixedYellow("Caught unexpected", "ClassNotFoundException", "during lookup action.");
         Logger.eprintlnMixedBlue("The class", name, "could not be resolved within your class path.");
-        Logger.eprintlnMixedBlue("This usually means that the RemoteObject is using a custom", "RMIClientSocketFactory or InvocationHandler.");
+
+        if (name.equals("sun/rmi/server/ActivatableRef"))
+        {
+            Logger.eprintlnMixedBlue("Newer Java versions", "do not", "include this class anymore.");
+            Logger.eprintln("You can retry using an older Java version like Java 8.");
+        }
+
+        else
+        {
+            Logger.eprintlnMixedBlue("This usually means that the RemoteObject is using a custom", "RMIClientSocketFactory or InvocationHandler.");
+        }
 
         showStackTrace(e);
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param boundName description in progress
+     */
     public static void notBoundException(Exception e, String boundName)
     {
         Logger.eprintMixedYellow("Caught", "NotBoundException", "on bound name ");
@@ -487,6 +745,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void timeoutException(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught", "SocketTimeoutException", "during " + during1 + " " + during2 + ".");
@@ -495,6 +758,11 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     * @param during1 description in progress
+     * @param during2 description in progress
+     */
     public static void connectionReset(Exception e, String during1, String during2)
     {
         Logger.eprintlnMixedYellow("Caught", "Connection Reset", "during " + during1 + " " + during2 + ".");
@@ -506,6 +774,9 @@ public class ExceptionHandler {
         RMGUtils.exit();
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void genericCall(Exception e)
     {
         Logger.printlnMixedYellow("Caught", e.getClass().getName(), "during generic call action.");
@@ -513,6 +784,10 @@ public class ExceptionHandler {
         ExceptionHandler.stackTrace(e);
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     */
     public static void connectException(Exception e, String callName)
     {
         Throwable t = ExceptionHandler.getCause(e);
@@ -546,6 +821,10 @@ public class ExceptionHandler {
         }
     }
 
+    /**
+     * @param e description in progress
+     * @param callName description in progress
+     */
     public static void connectIOException(Exception e, String callName)
     {
         Throwable t = ExceptionHandler.getCause(e);
@@ -576,6 +855,9 @@ public class ExceptionHandler {
         }
     }
 
+    /**
+     * @param e description in progress
+     */
     public static void invalidClassException(Exception e)
     {
         Logger.eprintlnMixedYellow("Caught", "InvalidClassException", "while unmarshalling an RMI stub.");
@@ -620,6 +902,7 @@ public class ExceptionHandler {
      * and prints the stacktrace if desired. This function should be used in most of the error
      * handling code of remote-method-guesser.
      *
+     * @param <T> throwable type
      * @param e Exception that was caught.
      */
     public static <T extends Throwable> void showStackTrace(T e)
@@ -633,6 +916,7 @@ public class ExceptionHandler {
     /**
      * Helper function that prints a stacktrace with a prefixed Logger item.
      *
+     * @param <T> throwable type
      * @param e Exception that was caught.
      */
     public static <T extends Throwable> void stackTrace(T e)

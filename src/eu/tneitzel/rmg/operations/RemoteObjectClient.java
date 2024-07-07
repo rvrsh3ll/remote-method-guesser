@@ -1,6 +1,8 @@
 package eu.tneitzel.rmg.operations;
 
+import java.lang.reflect.Proxy;
 import java.rmi.server.ObjID;
+import java.rmi.server.RemoteObjectInvocationHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -42,7 +44,9 @@ public class RemoteObjectClient
     private String boundName;
     private String randomClassName;
 
+    /** underlying UnicastWrapper */
     public UnicastWrapper remoteObject;
+    /** list of available remote methods*/
     public List<MethodCandidate> remoteMethods;
 
     /**
@@ -97,6 +101,20 @@ public class RemoteObjectClient
     }
 
     /**
+     * Create a proxy for the RemoteObjectClient.
+     *
+     * @param <T>  interface implemented by the proxy
+     * @param intf  the interface class
+     * @return proxy implementing the specified interface
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T createProxy(Class<T> intf)
+    {
+        RemoteObjectInvocationHandler invo = new RemoteObjectInvocationHandler(remoteRef);
+        return (T)Proxy.newProxyInstance(intf.getClassLoader(), new Class<?>[] { intf }, invo);
+    }
+
+    /**
      * When a RemoteObjectClient was obtained using an ObjID, it has no assigned UnicastWrapper.
      * remote-method-guesser only creates a UnicastRef using the endpoint information and the ObjID,
      * which is sufficient for RMI calls. Constructing a RemoteObject from a UnicastRef is easily
@@ -106,6 +124,7 @@ public class RemoteObjectClient
      * constructed UnicastRef and implements the specified interface.
      *
      * @param intf Interface implemented by the RemoteObject
+     * @return newly created UnicastWrapper for the specified interface
      */
     public UnicastWrapper assignInterface(Class<?> intf)
     {
@@ -341,8 +360,8 @@ public class RemoteObjectClient
      * Technically the same as the genericCall method, but does not perform any exception handling.
      *
      * @param targetMethod remote method to call
-     * @param argumentArray method arguments to use for the call
-     * @throws All possible encountered exceptions are passed to the caller
+     * @param args method arguments to use for the call
+     * @throws Exception all possible encountered exceptions are passed to the caller
      */
     public void unmanagedCall(MethodCandidate targetMethod, MethodArguments args) throws Exception
     {
@@ -432,7 +451,7 @@ public class RemoteObjectClient
 
         try
         {
-            remoteObject = rmiReg.lookup(boundName).getUnicastWrapper();
+            remoteObject = rmiReg.lookupWrapper(boundName).getUnicastWrapper();
         }
 
         catch (Exception e)
